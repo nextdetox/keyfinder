@@ -1,0 +1,843 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Key Finder — 음을 클릭해서 키 찾기</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600&family=IBM+Plex+Sans:wght@400;500;600&display=swap');
+
+:root{
+  --ink:#15120F;
+  --surface:#201A15;
+  --surface-2:#2A2219;
+  --wood:#4A3225;
+  --wood-dark:#382517;
+  --fret:#9C8E7C;
+  --ivory:#EFE7D8;
+  --ivory-dim:#B7AB98;
+  --brass:#C79A4B;
+  --brass-soft:#8A6B36;
+  --teal:#5F8B82;
+  --root-red:#B5433C;
+  --root-red-dark:#7A2A24;
+  --text-muted:#8F8477;
+  --border:#382E24;
+}
+
+*{ box-sizing:border-box; }
+
+html{
+  background:var(--ink);
+  min-height:100%;
+  color-scheme:dark;
+}
+
+body{
+  margin:0;
+  min-height:100vh;
+  background:var(--ink);
+  color:var(--ivory);
+  font-family:'IBM Plex Sans', sans-serif;
+  -webkit-font-smoothing:antialiased;
+}
+
+.page{
+  max-width:1040px;
+  margin:0 auto;
+  padding:48px 24px 80px;
+}
+
+header.hero{ margin-bottom:32px; }
+header.hero h1{
+  font-family:'Newsreader', serif;
+  font-weight:500;
+  font-size:2.6rem;
+  letter-spacing:-0.01em;
+  margin:0 0 10px;
+  color:var(--ivory);
+}
+header.hero p{
+  font-size:0.98rem;
+  color:var(--text-muted);
+  max-width:60ch;
+  line-height:1.55;
+  margin:0;
+}
+
+/* ---- two column layout ---- */
+.app-grid{
+  display:grid;
+  grid-template-columns:300px 1fr;
+  gap:24px;
+  align-items:start;
+}
+@media (max-width:840px){
+  .app-grid{ grid-template-columns:1fr; }
+  .side-panel{ position:static; order:2; }
+  .main-panel{ order:1; }
+}
+
+.side-panel{
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:16px;
+  padding:22px 20px;
+  position:sticky;
+  top:48px;
+}
+.side-panel h2{
+  font-family:'Newsreader', serif;
+  font-weight:500;
+  font-size:1.2rem;
+  margin:0 0 4px;
+  color:var(--ivory);
+}
+.side-panel .side-sub{
+  font-size:0.82rem;
+  color:var(--text-muted);
+  margin:0 0 18px;
+  line-height:1.5;
+}
+.side-empty{
+  font-size:0.86rem;
+  color:var(--text-muted);
+  line-height:1.6;
+  padding:14px 0 4px;
+  border-top:1px solid var(--border);
+}
+.side-chords{
+  display:flex;
+  flex-direction:column;
+  gap:8px;
+  border-top:1px solid var(--border);
+  padding-top:14px;
+}
+.chord-card{
+  background:var(--surface-2);
+  border:1px solid var(--border);
+  border-radius:10px;
+  padding:9px 12px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+}
+.chord-card .degree{ font-size:0.72rem; color:var(--teal); min-width:22px; }
+.chord-card .chord-btns{ display:flex; flex-direction:column; align-items:flex-end; gap:2px; flex:1; }
+.chord-card .triad, .chord-card .seventh{
+  cursor:pointer; border-radius:5px; padding:1px 6px;
+  transition:background 0.12s ease, color 0.12s ease;
+}
+.chord-card .triad{ font-size:0.95rem; font-weight:600; color:var(--ivory); }
+.chord-card .seventh{ font-size:0.78rem; color:var(--text-muted); }
+.chord-card .triad:hover, .chord-card .seventh:hover{ background:var(--surface); }
+.chord-card .triad.chord-active, .chord-card .seventh.chord-active{
+  background:var(--teal); color:var(--ivory);
+}
+
+/* ---- main column ---- */
+.controls-row{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  margin-bottom:20px;
+  flex-wrap:wrap;
+}
+
+.tabs{
+  display:flex;
+  gap:6px;
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:10px;
+  padding:4px;
+}
+.tab-btn{
+  border:none;
+  background:transparent;
+  color:var(--text-muted);
+  font-family:inherit;
+  font-size:0.9rem;
+  font-weight:500;
+  padding:8px 18px;
+  border-radius:7px;
+  cursor:pointer;
+  transition:background 0.15s ease, color 0.15s ease;
+}
+.tab-btn.active{ background:var(--brass); color:var(--ink); }
+.tab-btn:not(.active):hover{ color:var(--ivory); }
+
+.clear-btn{
+  border:1px solid var(--border);
+  background:transparent;
+  color:var(--text-muted);
+  font-family:inherit;
+  font-size:0.85rem;
+  padding:8px 16px;
+  border-radius:8px;
+  cursor:pointer;
+  transition:border-color 0.15s ease, color 0.15s ease;
+}
+.clear-btn:hover{ border-color:var(--brass-soft); color:var(--ivory); }
+
+.instrument-panel{
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:16px;
+  padding:26px 20px;
+  margin-bottom:22px;
+}
+
+.fretboard-scroll{ overflow-x:auto; padding-bottom:4px; }
+.fretboard{
+  display:grid;
+  grid-template-columns:34px repeat(13, minmax(38px,1fr));
+  grid-template-rows:20px repeat(6,42px) 14px;
+  min-width:640px;
+  background:var(--wood);
+  border-radius:8px;
+  padding:6px 8px;
+}
+.fret-num{ display:flex; align-items:center; justify-content:center; font-size:0.7rem; color:#C9BBA4; opacity:0.75; }
+.string-label{ display:flex; align-items:center; justify-content:center; font-size:0.72rem; color:#C9BBA4; font-weight:600; }
+.fret-cell{
+  border:none; background:transparent;
+  border-right:2px solid rgba(0,0,0,0.28);
+  cursor:pointer; position:relative;
+  display:flex; align-items:center; justify-content:center; padding:0;
+}
+.fret-cell::before{
+  content:''; position:absolute; left:0; right:0; top:50%; height:2px;
+  background:var(--fret); opacity:0.55; transform:translateY(-50%); z-index:0;
+}
+.fret-cell.nut{ border-right:3px solid var(--ivory); }
+.note-dot{
+  width:24px; height:24px; border-radius:50%;
+  background:var(--wood-dark);
+  border:1px solid rgba(239,231,216,0.18);
+  color:transparent; font-size:0.68rem;
+  display:flex; align-items:center; justify-content:center;
+  z-index:1; transition:transform 0.1s ease, background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+.fret-cell:hover .note-dot{ transform:scale(1.12); border-color:var(--brass-soft); }
+.fret-cell.active .note-dot{ background:var(--brass); color:var(--ink); font-weight:600; }
+.fret-cell.chordTone .note-dot{ background:var(--teal); color:var(--ivory); font-weight:700; border-color:#3E6961; }
+.fret-cell.root .note-dot{ background:var(--root-red); color:var(--ivory); font-weight:700; border-color:var(--root-red-dark); }
+.fret-cell.userNote .note-dot{ box-shadow:0 0 0 2px var(--brass) inset; }
+
+.marker-dot{ width:6px; height:6px; border-radius:50%; background:var(--ivory-dim); opacity:0.4; margin:0 auto; }
+.marker-cell{ display:flex; gap:3px; align-items:center; justify-content:center; }
+
+.piano-wrap{ max-width:420px; margin:0 auto; }
+.piano{ position:relative; height:180px; display:flex; }
+.white-key{
+  flex:1; background:var(--ivory); border:1px solid #C9BBA4;
+  border-radius:0 0 6px 6px; margin-right:-1px; position:relative; cursor:pointer;
+  display:flex; align-items:flex-end; justify-content:center; padding-bottom:10px;
+  transition:background 0.15s ease;
+}
+.white-key span{ font-size:0.72rem; color:#8A7C68; font-weight:500; }
+.white-key.active{ background:var(--brass); }
+.white-key.active span{ color:var(--ink); font-weight:600; }
+.white-key.chordTone{ background:var(--teal); }
+.white-key.chordTone span{ color:var(--ivory); font-weight:700; }
+.white-key.root{ background:var(--root-red); }
+.white-key.root span{ color:var(--ivory); font-weight:700; }
+.white-key.userNote{ box-shadow:inset 0 0 0 3px var(--brass); }
+
+.black-key{
+  position:absolute; top:0; width:8%; height:62%;
+  background:var(--wood-dark); border:1px solid #1A1109; border-radius:0 0 5px 5px;
+  z-index:2; cursor:pointer; display:flex; align-items:flex-end; justify-content:center;
+  padding-bottom:8px; transition:background 0.15s ease;
+}
+.black-key span{ font-size:0.62rem; color:var(--ivory-dim); }
+.black-key.active{ background:var(--brass); }
+.black-key.active span{ color:var(--ink); font-weight:600; }
+.black-key.chordTone{ background:var(--teal); }
+.black-key.chordTone span{ color:var(--ivory); font-weight:700; }
+.black-key.root{ background:var(--root-red); }
+.black-key.root span{ color:var(--ivory); font-weight:700; }
+.black-key.userNote{ box-shadow:inset 0 0 0 2px var(--brass); }
+
+.selected-row{ display:flex; flex-wrap:wrap; align-items:center; gap:8px; min-height:34px; margin-bottom:30px; }
+.selected-label{ font-size:0.82rem; color:var(--text-muted); margin-right:6px; }
+.chip{
+  display:inline-flex; align-items:center; gap:6px;
+  background:var(--surface-2); border:1px solid var(--border); color:var(--ivory);
+  font-size:0.85rem; padding:5px 10px 5px 12px; border-radius:20px; cursor:pointer;
+}
+.chip:hover{ border-color:var(--brass-soft); }
+.chip .x{ color:var(--text-muted); font-size:0.75rem; }
+.empty-hint{ font-size:0.85rem; color:var(--text-muted); font-style:italic; }
+
+.results{
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:16px;
+  padding:24px 22px;
+}
+.results h2{ font-family:'Newsreader', serif; font-weight:500; font-size:1.35rem; margin:0 0 4px; color:var(--ivory); }
+.results .results-sub{ font-size:0.85rem; color:var(--text-muted); margin:0 0 14px; }
+
+.result-row{
+  display:flex; align-items:center; justify-content:space-between; gap:16px;
+  padding:13px 8px; border-bottom:1px solid var(--border);
+  cursor:pointer; border-radius:8px; transition:background 0.12s ease;
+}
+.result-row:hover{ background:var(--surface-2); }
+.result-row.selected{ background:var(--surface-2); box-shadow:inset 3px 0 0 var(--root-red); }
+.result-row:last-child{ border-bottom:none; }
+.result-name{ font-weight:600; font-size:0.96rem; min-width:170px; color:var(--ivory); }
+.result-notes{ flex:1; font-size:0.85rem; color:var(--text-muted); letter-spacing:0.02em; }
+.result-notes .hit{ color:var(--brass); font-weight:600; }
+.result-ratio{ font-size:0.78rem; color:var(--teal); min-width:40px; text-align:right; font-variant-numeric:tabular-nums; }
+
+.advanced-toggle, .more-btn{
+  margin-top:14px; border:1px solid var(--border); background:transparent; color:var(--text-muted);
+  font-family:inherit; font-size:0.85rem; padding:8px 16px; border-radius:8px; cursor:pointer;
+}
+.advanced-toggle:hover, .more-btn:hover{ color:var(--ivory); border-color:var(--brass-soft); }
+
+.hint-box{ font-size:0.88rem; color:var(--text-muted); line-height:1.6; padding:10px 4px; }
+
+@media (max-width:520px){
+  header.hero h1{ font-size:2.1rem; }
+  .result-name{ min-width:130px; font-size:0.88rem; }
+  .result-notes{ font-size:0.78rem; }
+}
+</style>
+</head>
+<body>
+<div class="page">
+
+  <header class="hero">
+  </header>
+
+  <div class="app-grid">
+
+    <aside class="side-panel" id="chordPanel"></aside>
+
+    <main class="main-panel">
+      <div class="controls-row">
+        <div class="tabs">
+          <button class="tab-btn active" data-mode="guitar">기타</button>
+          <button class="tab-btn" data-mode="piano">피아노</button>
+        </div>
+        <button class="clear-btn" id="clearBtn">초기화</button>
+      </div>
+
+      <div class="instrument-panel">
+        <div id="guitarView">
+          <div class="fretboard-scroll">
+            <div class="fretboard" id="fretboard"></div>
+          </div>
+        </div>
+        <div id="pianoView" style="display:none;">
+          <div class="piano-wrap">
+            <div class="piano" id="piano"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="selected-row" id="selectedRow"></div>
+
+      <div class="results">
+        <h2>일치하는 키 / 스케일</h2>
+        <p class="results-sub" id="resultsSub"></p>
+        <div id="resultsList"></div>
+      </div>
+    </main>
+
+  </div>
+</div>
+
+<script>
+const NOTE_SHARP = ['C','C♯','D','D♯','E','F','F♯','G','G♯','A','A♯','B'];
+const NOTE_FLAT  = ['C','D♭','D','E♭','E','F','G♭','G','A♭','A','B♭','B'];
+const FLAT_ROOTS = new Set([5,10,3,8,1]); // F, Bb, Eb, Ab, Db
+
+function noteName(pc, flat){ return flat ? NOTE_FLAT[pc] : NOTE_SHARP[pc]; }
+function prefersFlat(root){ return FLAT_ROOTS.has(root); }
+
+const SCALES = [
+  { name:'Major (Ionian)',        formula:[0,2,4,5,7,9,11] },
+  { name:'Minor (Aeolian)',       formula:[0,2,3,5,7,8,10] },
+  { name:'Melodic Minor',         formula:[0,2,3,5,7,9,11] },
+  { name:'Harmonic Minor',        formula:[0,2,3,5,7,8,11] },
+  { name:'Pentatonic Major',      formula:[0,2,4,7,9] },
+  { name:'Pentatonic Minor',      formula:[0,3,5,7,10] },
+  { name:'Blues',                 formula:[0,3,5,6,7,10] },
+  { name:"Rock 'n' Roll",         formula:[0,2,3,4,7,9] },
+  { name:'Dorian',                formula:[0,2,3,5,7,9,10] },
+  { name:'Phrygian',              formula:[0,1,3,5,7,8,10] },
+  { name:'Lydian',                formula:[0,2,4,6,7,9,11] },
+  { name:'Mixolydian',            formula:[0,2,4,5,7,9,10] },
+  { name:'Locrian',               formula:[0,1,3,5,6,8,10] },
+  { name:'Dorian Bebop',          formula:[0,2,3,5,7,9,10,11] },
+  { name:'Mixolydian Bebop',      formula:[0,2,4,5,7,9,10,11] },
+  { name:'Whole Tone',            formula:[0,2,4,6,8,10] },
+  { name:'Half-Whole Diminished', formula:[0,1,3,4,6,7,9,10] },
+  { name:'Whole-Half Diminished', formula:[0,2,3,5,6,8,9,11] },
+  { name:'Spanish',               formula:[0,1,2,4,5,7,8,10] },
+  { name:'Gypsy Major',           formula:[0,1,4,5,7,8,11] },
+  { name:'Gypsy Minor',           formula:[0,2,3,6,7,8,11] },
+];
+
+const PRIMARY_NAMES = new Set(['Major (Ionian)','Minor (Aeolian)','Pentatonic Major','Pentatonic Minor']);
+
+let userSelected = new Set(); // notes the person actually clicked (drives matching)
+let mode = 'guitar';
+let advancedLimit = 20;
+let showAdvanced = false;
+let activeKey = null;   // { root, name, notes } — currently browsed key/scale
+let activeChord = null; // { id, notes } — currently highlighted diatonic chord
+
+function getDisplayNotes(){
+  return activeKey ? new Set(activeKey.notes) : userSelected;
+}
+
+// ---------- Fretboard ----------
+const STRING_PCS = [4,11,7,2,9,4]; // high e, B, G, D, A, low E
+const STRING_LABELS = ['e','B','G','D','A','E'];
+
+function buildFretboard(){
+  const el = document.getElementById('fretboard');
+  el.innerHTML = '';
+
+  const corner = document.createElement('div');
+  el.appendChild(corner);
+  for(let f=0; f<=12; f++){
+    const num = document.createElement('div');
+    num.className = 'fret-num';
+    num.textContent = f;
+    el.appendChild(num);
+  }
+
+  for(let s=0; s<6; s++){
+    const label = document.createElement('div');
+    label.className = 'string-label';
+    label.textContent = STRING_LABELS[s];
+    el.appendChild(label);
+
+    for(let f=0; f<=12; f++){
+      const pc = (STRING_PCS[s] + f) % 12;
+      const cell = document.createElement('button');
+      cell.className = 'fret-cell' + (f===0 ? ' nut' : '');
+      cell.dataset.pc = pc;
+      const dot = document.createElement('span');
+      dot.className = 'note-dot';
+      dot.textContent = noteName(pc,false);
+      cell.appendChild(dot);
+      cell.addEventListener('click', () => toggleNote(pc));
+      el.appendChild(cell);
+    }
+  }
+
+  const markerAt = new Set([3,5,7,9]);
+  const cornerBottom = document.createElement('div');
+  el.appendChild(cornerBottom);
+  for(let f=0; f<=12; f++){
+    const cell = document.createElement('div');
+    cell.className = 'marker-cell';
+    if(markerAt.has(f)){
+      const d = document.createElement('div'); d.className='marker-dot';
+      cell.appendChild(d);
+    } else if(f===12){
+      const d1=document.createElement('div'); d1.className='marker-dot';
+      const d2=document.createElement('div'); d2.className='marker-dot';
+      cell.appendChild(d1); cell.appendChild(d2);
+    }
+    el.appendChild(cell);
+  }
+}
+
+function refreshFretboard(){
+  const display = getDisplayNotes();
+  document.querySelectorAll('#fretboard .fret-cell').forEach(cell => {
+    const pc = parseInt(cell.dataset.pc,10);
+    cell.classList.toggle('active', display.has(pc));
+    cell.classList.toggle('userNote', userSelected.has(pc));
+    cell.classList.toggle('root', activeKey !== null && pc === activeKey.root);
+    cell.classList.toggle('chordTone', activeChord !== null && activeChord.notes.includes(pc));
+  });
+}
+
+// ---------- Piano ----------
+const WHITE_PCS = [0,2,4,5,7,9,11];
+const WHITE_NAMES = ['C','D','E','F','G','A','B'];
+const BLACK_DATA = [
+  {pc:1, left:'9%',  label:'C♯'},
+  {pc:3, left:'23.3%', label:'D♯'},
+  {pc:6, left:'51%', label:'F♯'},
+  {pc:8, left:'65.3%', label:'G♯'},
+  {pc:10, left:'79.6%', label:'A♯'},
+];
+
+function buildPiano(){
+  const el = document.getElementById('piano');
+  el.innerHTML = '';
+  WHITE_PCS.forEach((pc,i) => {
+    const key = document.createElement('div');
+    key.className = 'white-key';
+    key.dataset.pc = pc;
+    const span = document.createElement('span');
+    span.textContent = WHITE_NAMES[i];
+    key.appendChild(span);
+    key.addEventListener('click', () => toggleNote(pc));
+    el.appendChild(key);
+  });
+  BLACK_DATA.forEach(b => {
+    const key = document.createElement('div');
+    key.className = 'black-key';
+    key.dataset.pc = b.pc;
+    key.style.left = b.left;
+    const span = document.createElement('span');
+    span.textContent = b.label;
+    key.appendChild(span);
+    key.addEventListener('click', (e) => { e.stopPropagation(); toggleNote(b.pc); });
+    el.appendChild(key);
+  });
+}
+
+function refreshPiano(){
+  const display = getDisplayNotes();
+  document.querySelectorAll('#piano .white-key, #piano .black-key').forEach(key => {
+    const pc = parseInt(key.dataset.pc,10);
+    key.classList.toggle('active', display.has(pc));
+    key.classList.toggle('userNote', userSelected.has(pc));
+    key.classList.toggle('root', activeKey !== null && pc === activeKey.root);
+    key.classList.toggle('chordTone', activeChord !== null && activeChord.notes.includes(pc));
+  });
+}
+
+// ---------- selection logic ----------
+function toggleNote(pc){
+  if(userSelected.has(pc)) userSelected.delete(pc);
+  else userSelected.add(pc);
+  activeKey = null;
+  activeChord = null;
+  showAdvanced = false;
+  advancedLimit = 20;
+  renderAll();
+}
+
+function renderSelectedRow(){
+  const row = document.getElementById('selectedRow');
+  row.innerHTML = '';
+  const label = document.createElement('span');
+  label.className = 'selected-label';
+  label.textContent = '선택한 음';
+  row.appendChild(label);
+
+  if(userSelected.size === 0){
+    const hint = document.createElement('span');
+    hint.className = 'empty-hint';
+    hint.textContent = '아직 선택한 음이 없어요';
+    row.appendChild(hint);
+    return;
+  }
+
+  [...userSelected].sort((a,b)=>a-b).forEach(pc => {
+    const chip = document.createElement('span');
+    chip.className = 'chip';
+    chip.innerHTML = noteName(pc,false) + ' <span class="x">×</span>';
+    chip.addEventListener('click', () => toggleNote(pc));
+    row.appendChild(chip);
+  });
+}
+
+// ---------- matching ----------
+function computeMatches(){
+  const sel = [...userSelected];
+  const results = [];
+  for(let root=0; root<12; root++){
+    for(const scale of SCALES){
+      const scaleSet = new Set(scale.formula.map(iv => (root+iv)%12));
+      if(sel.every(n => scaleSet.has(n))){
+        results.push({
+          root,
+          name: scale.name,
+          notes: scale.formula.map(iv => (root+iv)%12),
+          matched: sel.length,
+          size: scale.formula.length,
+          ratio: sel.length / scale.formula.length,
+        });
+      }
+    }
+  }
+  results.sort((a,b) => b.ratio - a.ratio || a.size - b.size || a.root - b.root || a.name.localeCompare(b.name));
+  return results;
+}
+
+function isSameKey(m, key){
+  return key && m.root === key.root && m.name === key.name;
+}
+
+function makeResultRow(m){
+  const flat = prefersFlat(m.root);
+  const rootName = noteName(m.root, flat);
+
+  const row = document.createElement('div');
+  row.className = 'result-row' + (isSameKey(m, activeKey) ? ' selected' : '');
+
+  const nameEl = document.createElement('div');
+  nameEl.className = 'result-name';
+  nameEl.textContent = `${rootName} ${m.name}`;
+
+  const notesEl = document.createElement('div');
+  notesEl.className = 'result-notes';
+  notesEl.innerHTML = m.notes.map(pc => {
+    const n = noteName(pc, flat);
+    return userSelected.has(pc) ? `<span class="hit">${n}</span>` : n;
+  }).join(' · ');
+
+  const ratioEl = document.createElement('div');
+  ratioEl.className = 'result-ratio';
+  ratioEl.textContent = `${m.matched}/${m.size}`;
+
+  row.appendChild(nameEl);
+  row.appendChild(notesEl);
+  row.appendChild(ratioEl);
+
+  row.addEventListener('click', () => {
+    activeKey = isSameKey(m, activeKey) ? null : { root: m.root, name: m.name, notes: m.notes };
+    activeChord = null;
+    renderAll();
+  });
+
+  return row;
+}
+
+function renderResults(){
+  const listEl = document.getElementById('resultsList');
+  const subEl = document.getElementById('resultsSub');
+  listEl.innerHTML = '';
+
+  if(userSelected.size < 3){
+    subEl.textContent = '';
+    listEl.innerHTML = `<div class="hint-box">음을 3개 이상 선택하면 어울리는 키/스케일을 찾아드려요. (현재 ${userSelected.size}개 선택됨)</div>`;
+    return;
+  }
+
+  const matches = computeMatches();
+
+  if(matches.length === 0){
+    subEl.textContent = '';
+    listEl.innerHTML = `<div class="hint-box">이 조합과 완전히 일치하는 스케일이 없어요. 음을 하나 지워보거나 다시 선택해보세요.</div>`;
+    return;
+  }
+
+  const primary = matches.filter(m => PRIMARY_NAMES.has(m.name));
+  const advanced = matches.filter(m => !PRIMARY_NAMES.has(m.name));
+
+  subEl.textContent = `총 ${matches.length}개의 스케일이 일치해요 (일치도가 높은 순)`;
+
+  if(primary.length > 0){
+    primary.forEach(m => listEl.appendChild(makeResultRow(m)));
+  } else {
+    const none = document.createElement('div');
+    none.className = 'hint-box';
+    none.textContent = '메이저 / 마이너 / 펜타토닉 중에는 일치하는 스케일이 없어요.';
+    listEl.appendChild(none);
+  }
+
+  if(advanced.length > 0){
+    const toggleBtn = document.createElement('button');
+    toggleBtn.className = 'advanced-toggle';
+    toggleBtn.textContent = showAdvanced ? '다른 스케일 접기' : `다른 스케일 더보기 (${advanced.length})`;
+    toggleBtn.addEventListener('click', () => {
+      showAdvanced = !showAdvanced;
+      advancedLimit = 20;
+      renderResults();
+    });
+    listEl.appendChild(toggleBtn);
+
+    if(showAdvanced){
+      const advWrap = document.createElement('div');
+      advWrap.style.marginTop = '10px';
+      const toShow = advanced.slice(0, advancedLimit);
+      toShow.forEach(m => advWrap.appendChild(makeResultRow(m)));
+      listEl.appendChild(advWrap);
+
+      if(advanced.length > advancedLimit){
+        const moreBtn = document.createElement('button');
+        moreBtn.className = 'more-btn';
+        moreBtn.textContent = '더 보기';
+        moreBtn.addEventListener('click', () => {
+          advancedLimit += 20;
+          renderResults();
+        });
+        listEl.appendChild(moreBtn);
+      }
+    }
+  }
+}
+
+// ---------- diatonic chords ----------
+function triadQuality(i3, i5){
+  if(i3===4 && i5===7) return { symbol:'', seventhBase:'maj' };
+  if(i3===3 && i5===7) return { symbol:'m', seventhBase:'min' };
+  if(i3===3 && i5===6) return { symbol:'dim', seventhBase:'dim' };
+  if(i3===4 && i5===8) return { symbol:'aug', seventhBase:'aug' };
+  if(i3===2 && i5===7) return { symbol:'sus2', seventhBase:'other' };
+  if(i3===5 && i5===7) return { symbol:'sus4', seventhBase:'other' };
+  return { symbol:`(${i3}/${i5})`, seventhBase:'other' };
+}
+
+function seventhSymbol(q, i7){
+  if(q.seventhBase==='maj'){
+    if(i7===11) return 'maj7';
+    if(i7===10) return '7';
+  }
+  if(q.seventhBase==='min'){
+    if(i7===10) return 'm7';
+    if(i7===11) return 'mMaj7';
+  }
+  if(q.seventhBase==='dim'){
+    if(i7===9)  return 'dim7';
+    if(i7===10) return 'm7b5';
+  }
+  if(q.seventhBase==='aug'){
+    if(i7===10) return 'aug7';
+    if(i7===11) return 'maj7#5';
+  }
+  const map = {11:'maj7', 10:'7', 9:'dim7'};
+  return q.symbol + (map[i7] || `(${i7})`);
+}
+
+function getDiatonicChords(notes){
+  const N = notes.length;
+  if(N !== 7) return null;
+  const chords = [];
+  for(let i=0;i<7;i++){
+    const r = notes[i];
+    const third = notes[(i+2)%7];
+    const fifth = notes[(i+4)%7];
+    const seventh = notes[(i+6)%7];
+    const i3 = ((third - r) + 12) % 12;
+    const i5 = ((fifth - r) + 12) % 12;
+    const i7 = ((seventh - r) + 12) % 12;
+    const q = triadQuality(i3, i5);
+    chords.push({
+      degree: i+1,
+      root: r,
+      triadSymbol: q.symbol,
+      triadNotes: [r, third, fifth],
+      seventhSymbol: seventhSymbol(q, i7),
+      seventhNotes: [r, third, fifth, seventh],
+    });
+  }
+  return chords;
+}
+
+function renderChordPanel(){
+  const panel = document.getElementById('chordPanel');
+  panel.innerHTML = '';
+
+  const h2 = document.createElement('h2');
+  h2.textContent = '다이아토닉 코드';
+  panel.appendChild(h2);
+
+  if(!activeKey){
+    const sub = document.createElement('p');
+    sub.className = 'side-sub';
+    sub.textContent = '오른쪽 결과에서 키를 클릭하면 그 키의 트라이어드와 7th 코드가 여기 표시돼요.';
+    panel.appendChild(sub);
+    return;
+  }
+
+  const flat = prefersFlat(activeKey.root);
+  const rootName = noteName(activeKey.root, flat);
+
+  const sub = document.createElement('p');
+  sub.className = 'side-sub';
+  sub.textContent = `${rootName} ${activeKey.name}`;
+  panel.appendChild(sub);
+
+  const chords = getDiatonicChords(activeKey.notes);
+
+  if(!chords){
+    const empty = document.createElement('div');
+    empty.className = 'side-empty';
+    empty.textContent = `이 스케일은 음이 ${activeKey.notes.length}개라 3도씩 쌓는 일반적인 다이아토닉 코드 이론이 적용되지 않아요. 7음 스케일(메이저, 마이너, 모드 등)을 선택하면 코드가 표시돼요.`;
+    panel.appendChild(empty);
+    return;
+  }
+
+  const wrap = document.createElement('div');
+  wrap.className = 'side-chords';
+  chords.forEach(c => {
+    const cRootName = noteName(c.root, flat);
+    const triadId = `${activeKey.root}-${activeKey.name}-${c.degree}-triad`;
+    const seventhId = `${activeKey.root}-${activeKey.name}-${c.degree}-seventh`;
+
+    const card = document.createElement('div');
+    card.className = 'chord-card';
+
+    const degreeEl = document.createElement('span');
+    degreeEl.className = 'degree';
+    degreeEl.textContent = c.degree;
+
+    const btnWrap = document.createElement('div');
+    btnWrap.className = 'chord-btns';
+
+    const triadEl = document.createElement('span');
+    triadEl.className = 'triad' + (activeChord && activeChord.id===triadId ? ' chord-active' : '');
+    triadEl.textContent = `${cRootName}${c.triadSymbol}`;
+    triadEl.addEventListener('click', () => {
+      activeChord = (activeChord && activeChord.id===triadId) ? null : { id: triadId, notes: c.triadNotes };
+      renderAll();
+    });
+
+    const seventhEl = document.createElement('span');
+    seventhEl.className = 'seventh' + (activeChord && activeChord.id===seventhId ? ' chord-active' : '');
+    seventhEl.textContent = `${cRootName}${c.seventhSymbol}`;
+    seventhEl.addEventListener('click', () => {
+      activeChord = (activeChord && activeChord.id===seventhId) ? null : { id: seventhId, notes: c.seventhNotes };
+      renderAll();
+    });
+
+    btnWrap.appendChild(triadEl);
+    btnWrap.appendChild(seventhEl);
+    card.appendChild(degreeEl);
+    card.appendChild(btnWrap);
+    wrap.appendChild(card);
+  });
+  panel.appendChild(wrap);
+}
+
+document.getElementById('clearBtn').addEventListener('click', () => {
+  userSelected.clear();
+  activeKey = null;
+  activeChord = null;
+  showAdvanced = false;
+  advancedLimit = 20;
+  renderAll();
+});
+
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    mode = btn.dataset.mode;
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b===btn));
+    document.getElementById('guitarView').style.display = mode==='guitar' ? '' : 'none';
+    document.getElementById('pianoView').style.display = mode==='piano' ? '' : 'none';
+  });
+});
+
+function renderAll(){
+  refreshFretboard();
+  refreshPiano();
+  renderSelectedRow();
+  renderResults();
+  renderChordPanel();
+}
+
+buildFretboard();
+buildPiano();
+renderAll();
+</script>
+</body>
+</html>
