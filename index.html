@@ -117,24 +117,24 @@ header.hero p{
   background:var(--surface-2);
   border:1px solid var(--border);
   border-radius:10px;
-  padding:9px 12px;
+  padding:10px 12px;
   display:flex;
-  align-items:center;
-  justify-content:space-between;
-  gap:10px;
+  flex-direction:column;
+  gap:6px;
 }
-.chord-card .degree{ font-size:0.72rem; color:var(--teal); min-width:22px; }
-.chord-card .chord-btns{ display:flex; flex-direction:column; align-items:flex-end; gap:2px; flex:1; }
-.chord-card .triad, .chord-card .seventh{
-  cursor:pointer; border-radius:5px; padding:1px 6px;
-  transition:background 0.12s ease, color 0.12s ease;
+.chord-card .degree-label{ font-size:0.72rem; color:var(--teal); font-weight:600; }
+.chord-block{
+  cursor:pointer;
+  border-radius:7px;
+  padding:6px 8px;
+  transition:background 0.12s ease;
 }
-.chord-card .triad{ font-size:0.95rem; font-weight:600; color:var(--ivory); }
-.chord-card .seventh{ font-size:0.78rem; color:var(--text-muted); }
-.chord-card .triad:hover, .chord-card .seventh:hover{ background:var(--surface); }
-.chord-card .triad.chord-active, .chord-card .seventh.chord-active{
-  background:var(--teal); color:var(--ivory);
-}
+.chord-block:hover{ background:var(--surface); }
+.chord-block.chord-active{ background:var(--teal); }
+.chord-block.chord-active .chord-name{ color:var(--ivory); }
+.chord-block.chord-active .chord-tones{ color:rgba(239,231,216,0.85); }
+.chord-name{ font-size:0.95rem; font-weight:600; color:var(--ivory); }
+.chord-tones{ font-size:0.74rem; color:var(--text-muted); margin-top:3px; letter-spacing:0.01em; }
 
 /* ---- main column ---- */
 .controls-row{
@@ -362,6 +362,9 @@ const FLAT_ROOTS = new Set([5,10,3,8,1]); // F, Bb, Eb, Ab, Db
 function noteName(pc, flat){ return flat ? NOTE_FLAT[pc] : NOTE_SHARP[pc]; }
 function prefersFlat(root){ return FLAT_ROOTS.has(root); }
 
+const DEGREE_LABELS = ['R','b2','2','b3','3','4','b5','5','#5','6','b7','7'];
+function degreeLabel(semitone){ return DEGREE_LABELS[((semitone%12)+12)%12]; }
+
 const SCALES = [
   { name:'Major (Ionian)',        formula:[0,2,4,5,7,9,11] },
   { name:'Minor (Aeolian)',       formula:[0,2,3,5,7,8,10] },
@@ -460,7 +463,7 @@ function refreshFretboard(){
     const pc = parseInt(cell.dataset.pc,10);
     cell.classList.toggle('active', display.has(pc));
     cell.classList.toggle('userNote', userSelected.has(pc));
-    cell.classList.toggle('root', activeKey !== null && pc === activeKey.root);
+    cell.classList.toggle('root', activeKey !== null && activeChord === null && pc === activeKey.root);
     cell.classList.toggle('chordTone', activeChord !== null && activeChord.notes.includes(pc));
   });
 }
@@ -508,7 +511,7 @@ function refreshPiano(){
     const pc = parseInt(key.dataset.pc,10);
     key.classList.toggle('active', display.has(pc));
     key.classList.toggle('userNote', userSelected.has(pc));
-    key.classList.toggle('root', activeKey !== null && pc === activeKey.root);
+    key.classList.toggle('root', activeKey !== null && activeChord === null && pc === activeKey.root);
     key.classList.toggle('chordTone', activeChord !== null && activeChord.notes.includes(pc));
   });
 }
@@ -726,8 +729,10 @@ function getDiatonicChords(notes){
       root: r,
       triadSymbol: q.symbol,
       triadNotes: [r, third, fifth],
+      triadDegrees: ['R', degreeLabel(i3), degreeLabel(i5)],
       seventhSymbol: seventhSymbol(q, i7),
       seventhNotes: [r, third, fifth, seventh],
+      seventhDegrees: ['R', degreeLabel(i3), degreeLabel(i5), degreeLabel(i7)],
     });
   }
   return chords;
@@ -774,36 +779,35 @@ function renderChordPanel(){
     const triadId = `${activeKey.root}-${activeKey.name}-${c.degree}-triad`;
     const seventhId = `${activeKey.root}-${activeKey.name}-${c.degree}-seventh`;
 
+    const triadTones = c.triadNotes.map((pc,idx) => `${noteName(pc,flat)}(${c.triadDegrees[idx]})`).join(' · ');
+    const seventhTones = c.seventhNotes.map((pc,idx) => `${noteName(pc,flat)}(${c.seventhDegrees[idx]})`).join(' · ');
+
     const card = document.createElement('div');
     card.className = 'chord-card';
 
-    const degreeEl = document.createElement('span');
-    degreeEl.className = 'degree';
-    degreeEl.textContent = c.degree;
+    const degreeEl = document.createElement('div');
+    degreeEl.className = 'degree-label';
+    degreeEl.textContent = `${c.degree}도`;
+    card.appendChild(degreeEl);
 
-    const btnWrap = document.createElement('div');
-    btnWrap.className = 'chord-btns';
-
-    const triadEl = document.createElement('span');
-    triadEl.className = 'triad' + (activeChord && activeChord.id===triadId ? ' chord-active' : '');
-    triadEl.textContent = `${cRootName}${c.triadSymbol}`;
-    triadEl.addEventListener('click', () => {
+    const triadBlock = document.createElement('div');
+    triadBlock.className = 'chord-block' + (activeChord && activeChord.id===triadId ? ' chord-active' : '');
+    triadBlock.innerHTML = `<div class="chord-name">${cRootName}${c.triadSymbol}</div><div class="chord-tones">${triadTones}</div>`;
+    triadBlock.addEventListener('click', () => {
       activeChord = (activeChord && activeChord.id===triadId) ? null : { id: triadId, notes: c.triadNotes };
       renderAll();
     });
+    card.appendChild(triadBlock);
 
-    const seventhEl = document.createElement('span');
-    seventhEl.className = 'seventh' + (activeChord && activeChord.id===seventhId ? ' chord-active' : '');
-    seventhEl.textContent = `${cRootName}${c.seventhSymbol}`;
-    seventhEl.addEventListener('click', () => {
+    const seventhBlock = document.createElement('div');
+    seventhBlock.className = 'chord-block' + (activeChord && activeChord.id===seventhId ? ' chord-active' : '');
+    seventhBlock.innerHTML = `<div class="chord-name">${cRootName}${c.seventhSymbol}</div><div class="chord-tones">${seventhTones}</div>`;
+    seventhBlock.addEventListener('click', () => {
       activeChord = (activeChord && activeChord.id===seventhId) ? null : { id: seventhId, notes: c.seventhNotes };
       renderAll();
     });
+    card.appendChild(seventhBlock);
 
-    btnWrap.appendChild(triadEl);
-    btnWrap.appendChild(seventhEl);
-    card.appendChild(degreeEl);
-    card.appendChild(btnWrap);
     wrap.appendChild(card);
   });
   panel.appendChild(wrap);
